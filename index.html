@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS ECS Deployment — Q&A Study Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #141414;
+    --card-front: #1a1a1a;
+    --card-back: #0f1f0f;
+    --border: #2a2a2a;
+    --accent: #ff9900;
+    --accent2: #00e676;
+    --accent3: #7c4dff;
+    --text: #f0f0f0;
+    --muted: #888;
+    --tag-bg: #1e1e1e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 48px 24px 80px;
+  }
+
+  /* ── Background texture ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 20%, #ff990008 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, #7c4dff08 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, #00e67605 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  .header-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #ff9900, #ffcc44, #ff9900);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 14px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Filter tabs ── */
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 40px;
+    animation: fadeUp 0.6s ease 0.2s both;
+  }
+
+  .filter-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 8px 16px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+
+  /* ── Section heading ── */
+  .section-heading {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 48px 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Cards grid ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+
+  /* ── Flip card ── */
+  .flip-card {
+    height: 280px;
+    perspective: 1200px;
+    cursor: pointer;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .flip-card:nth-child(1)  { animation-delay: 0.05s; }
+  .flip-card:nth-child(2)  { animation-delay: 0.10s; }
+  .flip-card:nth-child(3)  { animation-delay: 0.15s; }
+  .flip-card:nth-child(4)  { animation-delay: 0.20s; }
+  .flip-card:nth-child(5)  { animation-delay: 0.25s; }
+  .flip-card:nth-child(6)  { animation-delay: 0.30s; }
+  .flip-card:nth-child(7)  { animation-delay: 0.35s; }
+  .flip-card:nth-child(8)  { animation-delay: 0.40s; }
+
+  .flip-card-inner {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+    position: relative;
+  }
+
+  .flip-card.flipped .flip-card-inner {
+    transform: rotateY(180deg);
+  }
+
+  .flip-card-front,
+  .flip-card-back {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 24px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    overflow: hidden;
+  }
+
+  /* Front */
+  .flip-card-front {
+    background: var(--card-front);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: border-color 0.2s;
+  }
+
+  .flip-card:hover .flip-card-front {
+    border-color: #ff990055;
+  }
+
+  .flip-card-front::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+  }
+
+  /* Section color accents */
+  .cat-arch .flip-card-front::before   { background: linear-gradient(90deg, #ff9900, #ffcc44); }
+  .cat-sec  .flip-card-front::before   { background: linear-gradient(90deg, #f44336, #ff7043); }
+  .cat-cors .flip-card-front::before   { background: linear-gradient(90deg, #7c4dff, #b388ff); }
+  .cat-docker .flip-card-front::before { background: linear-gradient(90deg, #2196f3, #64b5f6); }
+  .cat-dynamo .flip-card-front::before { background: linear-gradient(90deg, #00bcd4, #4dd0e1); }
+  .cat-deploy .flip-card-front::before { background: linear-gradient(90deg, #00e676, #69f0ae); }
+  .cat-scenario .flip-card-front::before { background: linear-gradient(90deg, #ff6d00, #ffab40); }
+
+  .q-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .q-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+  }
+
+  .tag-arch    { background: #ff990022; color: #ff9900; border: 1px solid #ff990044; }
+  .tag-sec     { background: #f4433622; color: #f44336; border: 1px solid #f4433644; }
+  .tag-cors    { background: #7c4dff22; color: #b388ff; border: 1px solid #7c4dff44; }
+  .tag-docker  { background: #2196f322; color: #64b5f6; border: 1px solid #2196f344; }
+  .tag-dynamo  { background: #00bcd422; color: #4dd0e1; border: 1px solid #00bcd444; }
+  .tag-deploy  { background: #00e67622; color: #00e676; border: 1px solid #00e67644; }
+  .tag-scenario{ background: #ff6d0022; color: #ffab40; border: 1px solid #ff6d0044; }
+
+  .q-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.45;
+    color: var(--text);
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+  }
+
+  .flip-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .flip-hint svg { opacity: 0.5; }
+
+  /* Back */
+  .flip-card-back {
+    background: #0f1a0f;
+    border: 1px solid #00e67633;
+    transform: rotateY(180deg);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+  }
+
+  .back-header {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--accent2);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #00e67622;
+    flex-shrink: 0;
+  }
+
+  .answer-points {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .answer-points li {
+    font-size: 12px;
+    line-height: 1.55;
+    color: #c8e6c9;
+    padding-left: 14px;
+    position: relative;
+  }
+
+  .answer-points li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--accent2);
+    font-size: 10px;
+    top: 2px;
+  }
+
+  .answer-points li strong {
+    color: #fff;
+  }
+
+  /* ── Progress bar ── */
+  .progress-bar-wrap {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: #1a1a1a;
+    z-index: 100;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff9900, #ffcc44);
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    margin-top: 64px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── Animations ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* scrollbar for back */
+  .flip-card-back::-webkit-scrollbar { width: 3px; }
+  .flip-card-back::-webkit-scrollbar-track { background: transparent; }
+  .flip-card-back::-webkit-scrollbar-thumb { background: #00e67644; border-radius: 99px; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar-wrap">
+  <div class="progress-bar-fill" id="progressBar"></div>
+</div>
+
+<div class="page">
+
+  <header>
+    <div class="header-eyebrow">RMIT Cloud Computing · Assignment 2</div>
+    <h1>AWS ECS Deployment<br>Study Cards</h1>
+    <p>Click any card to reveal the answer · 40 questions across 7 sections</p>
+    <div class="stats-bar">
+      <div class="stat"><span class="stat-num" id="totalFlipped">0</span><span class="stat-label">Reviewed</span></div>
+      <div class="stat"><span class="stat-num">40</span><span class="stat-label">Total Cards</span></div>
+      <div class="stat"><span class="stat-num" id="pctDone">0%</span><span class="stat-label">Complete</span></div>
+    </div>
+  </header>
+
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">All (40)</button>
+    <button class="filter-btn" data-filter="arch">Architecture (8)</button>
+    <button class="filter-btn" data-filter="sec">Security (5)</button>
+    <button class="filter-btn" data-filter="cors">CORS (4)</button>
+    <button class="filter-btn" data-filter="docker">Docker (6)</button>
+    <button class="filter-btn" data-filter="dynamo">DynamoDB (5)</button>
+    <button class="filter-btn" data-filter="deploy">Deployment (5)</button>
+    <button class="filter-btn" data-filter="scenario">Scenario (7)</button>
+  </div>
+
+  <div id="cardsContainer"></div>
+
+  <footer>AWS ECS Fargate · ELB · S3 · DynamoDB · ECR · CloudWatch · LabRole</footer>
+</div>
+
+<script>
+const data = [
+  // ── Section 1: Architecture ──
+  {
+    id: 1, cat: 'arch', tag: 'Architecture',
+    q: 'What is the difference between ECS with Fargate and ECS with EC2 launch type?',
+    a: [
+      'With <strong>EC2 launch type</strong>, you provision and manage the underlying EC2 virtual machines yourself — you choose instance types, patch the OS, and pay for instances even when idle.',
+      'With <strong>Fargate</strong>, AWS manages all underlying compute infrastructure — you only define CPU and memory requirements and AWS handles everything serverlessly.',
+      'The key trade-off is control vs simplicity: EC2 gives more configuration flexibility, while Fargate eliminates server management entirely at a slightly higher per-task cost.'
+    ]
+  },
+  {
+    id: 2, cat: 'arch', tag: 'Architecture',
+    q: 'Why is an Application Load Balancer used instead of exposing the container directly?',
+    a: [
+      'Exposing a container directly would mean the container\'s IP changes every time it restarts or redeploys, making it <strong>unreliable for clients</strong> to connect to.',
+      'The ALB provides a <strong>stable, permanent DNS name</strong> that never changes, and sits in front of all containers to distribute incoming traffic evenly.',
+      'It also enables <strong>health checking</strong> — automatically routing traffic away from unhealthy containers and only sending requests to healthy ones.'
+    ]
+  },
+  {
+    id: 3, cat: 'arch', tag: 'Architecture',
+    q: 'What is the purpose of the Target Group in the ALB configuration?',
+    a: [
+      'A Target Group is a <strong>logical group of destinations</strong> that the ALB forwards traffic to — in this case, the IP addresses of the Fargate tasks on port 5000.',
+      'It performs <strong>health checks</strong> on each registered target by calling /health every 15 seconds, only routing traffic to targets returning a 200 response.',
+      'When ECS starts a new task, it <strong>automatically registers</strong> its IP into the target group, and deregisters it when the task stops — no manual intervention needed.'
+    ]
+  },
+  {
+    id: 4, cat: 'arch', tag: 'Architecture',
+    q: 'Why does the ALB require at least two Availability Zones?',
+    a: [
+      'AWS requires ALBs to span at least two AZs to ensure <strong>high availability</strong> — if one AZ goes down, the ALB can still route traffic through the other.',
+      'Each AZ has its own independent power, networking, and cooling, so distributing across two AZs protects against a <strong>single point of failure</strong>.',
+      'For ECS Fargate specifically, having tasks in multiple AZs means your backend keeps running even if an entire data centre experiences an outage.'
+    ]
+  },
+  {
+    id: 5, cat: 'arch', tag: 'Architecture',
+    q: 'What is the difference between a Task Definition and a Service in ECS?',
+    a: [
+      'A <strong>Task Definition</strong> is the blueprint for your container — it defines the Docker image, CPU, memory, port mappings, environment variables, and IAM roles.',
+      'A <strong>Service</strong> is the running manager that uses that blueprint — it ensures a specified number of tasks are always running and replaces any that fail or stop.',
+      'Think of it like a <strong>class vs an instance</strong> — the Task Definition is the class (template), and the Service creates and maintains the actual running instances (tasks).'
+    ]
+  },
+  {
+    id: 6, cat: 'arch', tag: 'Architecture',
+    q: 'Why is the container listening on port 5000 while the ALB listens on port 80?',
+    a: [
+      'Port 80 is the <strong>standard HTTP port</strong> that browsers use by default, satisfying the assessment requirement that the service is publicly accessible on port 80.',
+      'Port 5000 is the <strong>internal application port</strong> where Gunicorn runs Flask inside the container — hidden from the public internet by the security group.',
+      'The ALB performs <strong>port translation</strong> — it accepts public traffic on port 80 and forwards it to the container on port 5000, keeping the internal architecture flexible and secure.'
+    ]
+  },
+  {
+    id: 7, cat: 'arch', tag: 'Architecture',
+    q: 'What is Amazon ECR and why is it used instead of Docker Hub?',
+    a: [
+      '<strong>Amazon ECR</strong> is AWS\'s private Docker image registry — it stores your container images securely within your AWS account.',
+      'It is used instead of Docker Hub because ECS can pull images from ECR using <strong>IAM authentication (LabRole)</strong> without exposing credentials or relying on public registries.',
+      'ECR keeps images <strong>in the same AWS region</strong> as your ECS cluster, making pulls faster, more reliable, and avoiding Docker Hub rate limits.'
+    ]
+  },
+  {
+    id: 8, cat: 'arch', tag: 'Architecture',
+    q: 'Explain the decoupled architecture — why is the frontend hosted on S3 separately from the backend?',
+    a: [
+      'Hosting the frontend on S3 means HTML, CSS, and JS files are served as <strong>static files directly from S3</strong>, independent of the backend container\'s availability.',
+      'This decoupling allows the <strong>frontend and backend to scale, deploy, and fail independently</strong> — updating the backend doesn\'t require redeploying the frontend.',
+      'It also reduces cost and complexity — S3 static hosting is extremely cheap with no servers, while ECS only handles <strong>dynamic API requests</strong>.'
+    ]
+  },
+
+  // ── Section 2: Security ──
+  {
+    id: 9, cat: 'sec', tag: 'Security',
+    q: 'What is LabRole and why must both the Task Role and Task Execution Role be set to LabRole?',
+    a: [
+      '<strong>LabRole</strong> is a pre-configured IAM role provided by AWS Academy with permissions to access DynamoDB, S3, ECR, and CloudWatch within the lab environment.',
+      'Both roles must be set to LabRole because AWS Academy restricts students from creating custom IAM roles — LabRole is the <strong>only available role</strong> with sufficient permissions.',
+      'Without LabRole on both fields, the container would fail to pull images from ECR and the Flask app would get <strong>AccessDenied errors</strong> when calling DynamoDB and S3.'
+    ]
+  },
+  {
+    id: 10, cat: 'sec', tag: 'Security',
+    q: 'What is the difference between the Task Role and the Task Execution Role?',
+    a: [
+      'The <strong>Task Execution Role</strong> is used by the ECS agent itself — it grants ECS permission to pull the Docker image from ECR and send logs to CloudWatch before the app starts.',
+      'The <strong>Task Role</strong> is used by the application running inside the container — it grants Flask permission to call AWS services like DynamoDB and S3 at runtime.',
+      'Simply put: the Execution Role is for <strong>ECS infrastructure operations</strong>, while the Task Role is for your <strong>application\'s AWS API calls</strong>.'
+    ]
+  },
+  {
+    id: 11, cat: 'sec', tag: 'Security',
+    q: 'Why is hertz-ecs-sg configured to only allow traffic from hertz-alb-sg on port 5000?',
+    a: [
+      'This creates a <strong>security chain</strong> — only resources inside hertz-alb-sg (the ALB) can reach port 5000 on ECS tasks, making the container unreachable from the public internet.',
+      'If port 5000 were open to 0.0.0.0/0, anyone could <strong>bypass the ALB</strong> and send requests directly to the container, circumventing any ALB-level protections.',
+      'Using the <strong>security group as the source</strong> (rather than an IP range) means this rule automatically applies to any new ALB network interfaces without manual IP management.'
+    ]
+  },
+  {
+    id: 12, cat: 'sec', tag: 'Security',
+    q: 'Why are S3 artist images accessed via presigned URLs rather than making the bucket public?',
+    a: [
+      'A <strong>presigned URL</strong> is a time-limited, cryptographically signed URL that grants temporary access to a specific S3 object — expiring after 3600 seconds in this deployment.',
+      'Making the bucket public would allow <strong>anyone to list and download all objects</strong> without restriction, exposing your data and potentially incurring large bandwidth costs.',
+      'Presigned URLs keep the bucket <strong>fully private</strong> while still allowing the frontend to display images — Flask generates them using LabRole credentials at request time.'
+    ]
+  },
+  {
+    id: 13, cat: 'sec', tag: 'Security',
+    q: 'What would happen if Public IP was disabled on the Fargate task?',
+    a: [
+      'The Fargate task would have <strong>no outbound internet access</strong>, meaning it cannot reach ECR to pull the Docker image — causing a CannotPullContainerError and failing to start.',
+      'Without a public IP, the task also cannot reach <strong>CloudWatch</strong> to write logs or call <strong>DynamoDB and S3</strong> endpoints unless VPC endpoints are configured.',
+      'The fix is either to <strong>re-enable Public IP</strong>, or set up VPC Interface Endpoints for ECR, CloudWatch, DynamoDB, and S3 — which is more complex and not available in AWS Academy.'
+    ]
+  },
+
+  // ── Section 3: CORS ──
+  {
+    id: 14, cat: 'cors', tag: 'CORS',
+    q: 'What is CORS and why is it needed in this architecture?',
+    a: [
+      '<strong>CORS (Cross-Origin Resource Sharing)</strong> is a browser security mechanism that blocks web pages from making API requests to a different domain than the one that served the page.',
+      'It is needed because the frontend is served from the S3 URL but makes API calls to the ALB DNS — <strong>two completely different origins</strong>.',
+      'Without CORS headers on the Flask backend, the browser would <strong>block all API responses</strong> even if the server processed them correctly, breaking login, search, and subscription features.'
+    ]
+  },
+  {
+    id: 15, cat: 'cors', tag: 'CORS',
+    q: 'What does the ALLOWED_ORIGIN environment variable do in the Flask app?',
+    a: [
+      'ALLOWED_ORIGIN is read by Flask at startup and passed to flask-cors, which uses it to set the <strong>Access-Control-Allow-Origin</strong> response header on every API response.',
+      'It tells the browser exactly <strong>which frontend origin</strong> is permitted to receive API responses — only requests from that exact origin are allowed through.',
+      'By using an environment variable instead of hardcoding, the same Docker image can be deployed to <strong>different environments</strong> with different allowed origins without rebuilding.'
+    ]
+  },
+  {
+    id: 16, cat: 'cors', tag: 'CORS',
+    q: 'Why would a trailing slash in the ALLOWED_ORIGIN value cause CORS to fail?',
+    a: [
+      'The browser sends the Origin header as exactly the URL <strong>without a trailing slash</strong> — following the HTTP specification for origin headers.',
+      'If ALLOWED_ORIGIN is set with a trailing slash, the string comparison fails — <strong>"...amazonaws.com/" ≠ "...amazonaws.com"</strong> — so no CORS headers are returned.',
+      'The browser then sees the <strong>missing Access-Control-Allow-Origin header</strong> and blocks the response entirely, even though the server processed the request successfully.'
+    ]
+  },
+  {
+    id: 17, cat: 'cors', tag: 'CORS',
+    q: 'What HTTP method is used for a CORS preflight request and what headers must be returned?',
+    a: [
+      'A CORS preflight uses the <strong>OPTIONS</strong> HTTP method — the browser sends it automatically before any cross-origin POST, PUT, or DELETE request.',
+      'The server must return at minimum: <strong>Access-Control-Allow-Origin</strong> (matching the requesting origin) and <strong>Access-Control-Allow-Credentials: true</strong> when auth is involved.',
+      'Additional required headers include <strong>Access-Control-Allow-Methods</strong> (listing allowed HTTP methods) and <strong>Access-Control-Allow-Headers</strong> (e.g. content-type).'
+    ]
+  },
+
+  // ── Section 4: Docker ──
+  {
+    id: 18, cat: 'docker', tag: 'Docker',
+    q: 'What is the purpose of a Dockerfile?',
+    a: [
+      'A <strong>Dockerfile</strong> is a text file containing step-by-step instructions that Docker follows to build a container image — defining the base OS, dependencies, app code, and startup command.',
+      'It ensures the application runs in a <strong>consistent, reproducible environment</strong> regardless of whether it\'s on a developer\'s laptop, CI/CD pipeline, or ECS Fargate task.',
+      'Every instruction creates a <strong>cached layer</strong>, meaning subsequent builds only rebuild layers that have changed, making the build process significantly faster.'
+    ]
+  },
+  {
+    id: 19, cat: 'docker', tag: 'Docker',
+    q: 'Why is python:3.12-slim used as the base image instead of python:3.12?',
+    a: [
+      'python:3.12 is based on a full Debian OS and includes many tools <strong>unnecessary for running a Flask app</strong>, making the image around 900MB in size.',
+      'python:3.12-slim strips out all non-essential packages, resulting in an image around <strong>150MB</strong> — smaller images push and pull faster from ECR and start up quicker in ECS.',
+      'Smaller images also have a <strong>reduced attack surface</strong> — fewer installed packages means fewer potential security vulnerabilities in the running container.'
+    ]
+  },
+  {
+    id: 20, cat: 'docker', tag: 'Docker',
+    q: 'What does the .dockerignore file do and why is .env included in it?',
+    a: [
+      'A .dockerignore file tells Docker which files and folders to <strong>exclude from the build context</strong> — preventing them from being copied into the Docker image during the build.',
+      '.env is included because it contains <strong>sensitive local credentials and configuration</strong> (like AWS keys) that should never be embedded inside a Docker image pushed to ECR.',
+      'Without .dockerignore, every file in the project folder gets sent to Docker\'s build context, <strong>slowing the build</strong> and risking accidental exposure of secrets in image layers.'
+    ]
+  },
+  {
+    id: 21, cat: 'docker', tag: 'Docker',
+    q: 'Why does the Dockerfile copy requirements.txt before app.py? (Layer caching)',
+    a: [
+      'Docker builds images in <strong>layers</strong>, and each instruction creates a cached layer — if nothing in that layer changed, Docker reuses the cache instead of re-executing.',
+      'Since requirements.txt changes rarely but app.py changes frequently, copying dependencies first means the <strong>expensive pip install step is cached</strong> on most rebuilds.',
+      'If app.py were copied first, any code change would <strong>invalidate the pip install cache</strong>, forcing Docker to re-download and reinstall all packages every single build unnecessarily.'
+    ]
+  },
+  {
+    id: 22, cat: 'docker', tag: 'Docker',
+    q: 'What is Gunicorn and why is it used instead of Flask\'s built-in server?',
+    a: [
+      '<strong>Gunicorn</strong> is a production-grade WSGI server that runs multiple worker processes simultaneously, allowing Flask to handle <strong>multiple concurrent requests</strong> at the same time.',
+      'Flask\'s built-in development server is <strong>single-threaded and not designed for production</strong> — it can only handle one request at a time and lacks stability, performance, and security.',
+      'In this deployment, Gunicorn runs with <strong>4 worker processes (-w 4)</strong>, meaning up to 4 requests can be processed simultaneously within a single container.'
+    ]
+  },
+  {
+    id: 23, cat: 'docker', tag: 'Docker',
+    q: 'Why must Gunicorn bind to 0.0.0.0:5000 instead of 127.0.0.1:5000?',
+    a: [
+      '127.0.0.1 (localhost) means the server only accepts connections <strong>from within the same machine</strong> — inside Docker, only processes inside the container can reach it.',
+      'The ALB sends traffic to the container from <strong>outside the container\'s network namespace</strong>, so binding to localhost makes the app completely unreachable from the ALB.',
+      '0.0.0.0 means <strong>accept connections on all available network interfaces</strong>, allowing the ALB, health checks, and external traffic to reach Gunicorn on port 5000.'
+    ]
+  },
+
+  // ── Section 5: DynamoDB ──
+  {
+    id: 24, cat: 'dynamo', tag: 'DynamoDB',
+    q: 'What is the difference between a DynamoDB Query and a Scan operation?',
+    a: [
+      'A <strong>Query</strong> uses the partition key to directly locate items — it is fast and efficient because DynamoDB knows exactly which partition to look in.',
+      'A <strong>Scan</strong> reads every item in the entire table and then filters the results — it is much slower and more expensive as it consumes read capacity for every item.',
+      'In the Music app, Query is used when searching by <strong>artist alone</strong> (primary key), while Scan is used when filtering by title, year, or album combinations.'
+    ]
+  },
+  {
+    id: 25, cat: 'dynamo', tag: 'DynamoDB',
+    q: 'What is a Global Secondary Index (GSI) and why was year_index created on the Music table?',
+    a: [
+      'A <strong>GSI</strong> is an additional index with a completely different partition key from the base table, allowing queries on non-primary key attributes.',
+      'year_index was created with year as the partition key and artist as the sort key, enabling efficient <strong>queries like "find all songs from 2021"</strong> without scanning the entire table.',
+      'Unlike the base table, a GSI can be <strong>created or deleted after the table exists</strong>, and it maintains its own separate copy of the projected data.'
+    ]
+  },
+  {
+    id: 26, cat: 'dynamo', tag: 'DynamoDB',
+    q: 'What is a Local Secondary Index (LSI) and how does it differ from a GSI?',
+    a: [
+      'A <strong>LSI</strong> shares the same partition key as the base table but uses a different sort key, allowing alternative sort orders within the same partition.',
+      'Unlike a GSI, an LSI <strong>must be created when the table is first created</strong> — it cannot be added later, and it cannot have a different partition key from the base table.',
+      'A GSI is more flexible (different partition key, can be added anytime) while an LSI is more constrained but <strong>cheaper</strong> as it shares the base table\'s read/write capacity.'
+    ]
+  },
+  {
+    id: 27, cat: 'dynamo', tag: 'DynamoDB',
+    q: 'What are the primary key components of the Music table based on your deployment?',
+    a: [
+      'The Music table uses a <strong>composite primary key</strong> consisting of artist as the partition key (HASH) and year as the sort key (RANGE).',
+      'The partition key <strong>artist</strong> determines which DynamoDB partition stores the item, while the sort key <strong>year</strong> allows items within the same artist to be sorted by year.',
+      'This means searching by title or album alone requires either a <strong>Scan or a GSI</strong> — it cannot be done efficiently with a Query on the base table.'
+    ]
+  },
+  {
+    id: 28, cat: 'dynamo', tag: 'DynamoDB',
+    q: 'Why does the Subscription table use emailId as the partition key?',
+    a: [
+      'Using emailId as the partition key means all subscriptions for a given user are stored in the <strong>same DynamoDB partition</strong>, making retrieval of all user subscriptions extremely fast.',
+      'The sort key title_album (formatted as title#album) uniquely identifies each subscription within a user\'s partition, preventing <strong>duplicate subscriptions</strong> to the same song.',
+      'This design directly matches the access pattern — "get all subscriptions for user X" — which is the most common query, making it <strong>highly efficient</strong> without requiring a Scan.'
+    ]
+  },
+
+  // ── Section 6: Deployment ──
+  {
+    id: 29, cat: 'deploy', tag: 'Deployment',
+    q: 'What are the steps to deploy a new version after modifying app.py?',
+    a: [
+      '<strong>Step 1 — Rebuild and push:</strong> Run docker build, tag the image with a new version (:v2, :v3), authenticate to ECR, and push the new image with docker push.',
+      '<strong>Step 2 — New task definition revision:</strong> In ECS Console → Task Definitions → hertz-task → Create new revision → update the image URI to the new tag → Create.',
+      '<strong>Step 3 — Update the service:</strong> ECS → hertz-service → Update → select the new revision → check "Force new deployment" → Update, then wait for the new task to become healthy.'
+    ]
+  },
+  {
+    id: 30, cat: 'deploy', tag: 'Deployment',
+    q: 'What does "Force new deployment" do in ECS?',
+    a: [
+      '"Force new deployment" tells ECS to <strong>stop the currently running tasks</strong> and start new ones using the latest task definition revision, even if nothing has changed.',
+      'Without this flag, ECS may detect no changes and <strong>leave the old tasks running</strong>, meaning your updated Docker image or environment variables never take effect.',
+      'It triggers a <strong>rolling update</strong> — ECS starts the new task, waits for it to pass health checks, then stops the old task to ensure zero downtime.'
+    ]
+  },
+  {
+    id: 31, cat: 'deploy', tag: 'Deployment',
+    q: 'What is the purpose of the /health endpoint in the Flask app?',
+    a: [
+      'The /health endpoint returns {"status": "ok"} with a 200 HTTP status code — it gives the ALB a simple way to <strong>verify the container is alive and ready to serve traffic</strong>.',
+      'The ALB calls this endpoint every <strong>15 seconds</strong> on each registered target — if it returns a non-200 response twice in a row, the target is marked unhealthy and removed from rotation.',
+      'Without a health check endpoint, the ALB has no way to distinguish between a <strong>healthy container and a crashed one</strong>, potentially routing user traffic to broken tasks.'
+    ]
+  },
+  {
+    id: 32, cat: 'deploy', tag: 'Deployment',
+    q: 'How does ECS achieve zero-downtime deployments when updating to a new task revision?',
+    a: [
+      'When a new task definition revision is deployed, ECS starts the <strong>new task first</strong> alongside the existing one — both run simultaneously during the transition period.',
+      'The ALB only routes traffic to the new task <strong>after it passes health checks</strong> (returns 200 from /health) and is registered as healthy in the target group.',
+      'Only after the new task is confirmed healthy does ECS <strong>drain and stop the old task</strong>, ensuring users always have a healthy target serving their requests throughout the deployment.'
+    ]
+  },
+  {
+    id: 33, cat: 'deploy', tag: 'Deployment',
+    q: 'Why does AWS Academy require credentials to be refreshed every 4 hours?',
+    a: [
+      'AWS Academy uses <strong>temporary security credentials</strong> (STS session tokens) rather than permanent IAM user keys — these expire automatically after the lab session ends.',
+      'This prevents credentials from being <strong>accidentally leaked or reused</strong> after a lab session — even if captured, they become worthless after expiry.',
+      'The three-part credential set (access_key_id, secret_access_key, <strong>session_token</strong>) must all be refreshed together because the session token is required to authenticate API calls.'
+    ]
+  },
+
+  // ── Section 7: Scenarios ──
+  {
+    id: 34, cat: 'scenario', tag: 'Scenario',
+    q: 'A user reports images are not loading. Walk through the debugging steps.',
+    a: [
+      '<strong>Step 1 — Check the browser:</strong> Open DevTools → Network → click a broken image → check the URL (correct S3 bucket?) and status code (403 = permissions, 404 = wrong key).',
+      '<strong>Step 2 — Check the backend:</strong> Run aws logs tail /ecs/hertz-task --follow and trigger an image load — look for presign errors, wrong bucket name, or AccessDenied from boto3.',
+      '<strong>Step 3 — Check the environment:</strong> Go to ECS → Task Definition → verify S3_BUCKET matches the actual bucket name exactly and the running task uses the latest revision.'
+    ]
+  },
+  {
+    id: 35, cat: 'scenario', tag: 'Scenario',
+    q: 'The ALB is returning a 503 error. What are the possible causes and fixes?',
+    a: [
+      '<strong>Cause 1 — No healthy targets:</strong> Go to EC2 → Target Groups → hertz-tg → Targets — if unhealthy, check the health check path (/health), port (5000), and hertz-ecs-sg inbound rules.',
+      '<strong>Cause 2 — Task not running:</strong> Go to ECS → hertz-service → Tasks — if no tasks running, check CloudWatch logs for Python tracebacks or the task\'s "Stopped reason".',
+      '<strong>Cause 3 — Deployment in progress:</strong> Wait 60-90 seconds for health checks to pass; if 503 persists beyond 2 minutes, investigate the target group health reason in detail.'
+    ]
+  },
+  {
+    id: 36, cat: 'scenario', tag: 'Scenario',
+    q: 'Your ECS task is stuck in PROVISIONING state — what is the most likely cause?',
+    a: [
+      'The most common cause is that the <strong>subnet has no route to the internet</strong> — Fargate needs to pull the Docker image from ECR, which requires outbound internet access via an IGW.',
+      'Check that <strong>"Auto-assign Public IP"</strong> is enabled on the ECS service networking settings — without a public IP, the task cannot reach ECR or any AWS service endpoints.',
+      'Also verify the <strong>task execution role is LabRole</strong> — if it\'s missing or wrong, ECS cannot authenticate to ECR to pull the image, keeping the task stuck in provisioning indefinitely.'
+    ]
+  },
+  {
+    id: 37, cat: 'scenario', tag: 'Scenario',
+    q: 'CORS is working in curl but failing in the browser. What is the likely cause?',
+    a: [
+      'curl does not send an Origin header by default, so the Flask CORS middleware never checks origin matching — it responds normally <strong>regardless of what ALLOWED_ORIGIN is set to</strong>.',
+      'The browser <strong>always sends the exact Origin header</strong> (protocol + hostname + port, no trailing slash), and if it doesn\'t match ALLOWED_ORIGIN exactly, no CORS headers are returned.',
+      'Check for common mismatches: a <strong>trailing slash</strong> in ALLOWED_ORIGIN, http vs https protocol mismatch, or the wrong bucket name — any character difference blocks the response.'
+    ]
+  },
+  {
+    id: 38, cat: 'scenario', tag: 'Scenario',
+    q: 'You update an environment variable in the task definition. Does the running task pick it up automatically?',
+    a: [
+      '<strong>No</strong> — the running task was started with the old task definition revision and its environment variables are baked in at startup — they cannot be changed in a running container.',
+      'You must create a <strong>new task definition revision</strong> with the updated environment variable, then update the ECS service with "Force new deployment" checked.',
+      'ECS will start a new task with the updated environment, wait for it to become healthy, and <strong>stop the old task</strong> — the new value only takes effect in the new task.'
+    ]
+  },
+  {
+    id: 39, cat: 'scenario', tag: 'Scenario',
+    q: 'Compare the cost and operational overhead of EC2 vs ECS Fargate deployment.',
+    a: [
+      '<strong>EC2</strong> has lower compute cost (t2.micro is free tier eligible) but higher operational overhead — you must manage OS updates, configure Nginx/Gunicorn manually, and handle SSH access.',
+      '<strong>ECS Fargate</strong> costs ~$0.012/hr per task plus ~$0.025/hr for the ALB (~$27/month combined), but AWS manages all infrastructure — no OS patching, automatic task replacement if it crashes.',
+      'For a <strong>student project</strong>, EC2 is cheaper; for <strong>production workloads</strong>, Fargate\'s auto-scaling, self-healing, and operational simplicity justify the additional cost.'
+    ]
+  },
+  {
+    id: 40, cat: 'scenario', tag: 'Scenario',
+    q: 'What AWS services would you need to add to enable HTTPS (port 443)?',
+    a: [
+      '<strong>Amazon Route 53</strong> — register or manage a domain name so you have a proper domain (e.g. api.yourdomain.com) to attach the SSL certificate to.',
+      '<strong>AWS Certificate Manager (ACM)</strong> — request a free public SSL/TLS certificate for your domain, validate it via DNS, and attach it to the ALB to enable encrypted HTTPS.',
+      '<strong>ALB Listener on port 443</strong> — add a new HTTPS listener to hertz-alb using the ACM certificate forwarding to hertz-tg, and optionally add a port 80 → 443 redirect rule.'
+    ]
+  }
+];
+
+const sectionLabels = {
+  arch: '01 — Architecture & Concepts',
+  sec: '02 — Security & IAM',
+  cors: '03 — CORS',
+  docker: '04 — Docker & Containerization',
+  dynamo: '05 — DynamoDB',
+  deploy: '06 — Deployment Process',
+  scenario: '07 — Scenario Based'
+};
+
+const tagClasses = {
+  arch: 'tag-arch',
+  sec: 'tag-sec',
+  cors: 'tag-cors',
+  docker: 'tag-docker',
+  dynamo: 'tag-dynamo',
+  deploy: 'tag-deploy',
+  scenario: 'tag-scenario'
+};
+
+let flippedSet = new Set();
+let activeFilter = 'all';
+
+function buildCards(filter) {
+  const container = document.getElementById('cardsContainer');
+  container.innerHTML = '';
+
+  const filtered = filter === 'all' ? data : data.filter(d => d.cat === filter);
+
+  // Group by category
+  const sections = {};
+  filtered.forEach(item => {
+    if (!sections[item.cat]) sections[item.cat] = [];
+    sections[item.cat].push(item);
+  });
+
+  Object.entries(sections).forEach(([cat, items]) => {
+    const heading = document.createElement('div');
+    heading.className = 'section-heading';
+    heading.textContent = sectionLabels[cat];
+    container.appendChild(heading);
+
+    const grid = document.createElement('div');
+    grid.className = 'cards-grid';
+
+    items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = `flip-card cat-${item.cat}`;
+      card.dataset.id = item.id;
+      if (flippedSet.has(item.id)) card.classList.add('flipped');
+
+      card.innerHTML = `
+        <div class="flip-card-inner">
+          <div class="flip-card-front">
+            <div>
+              <span class="q-number">Q${item.id}</span>
+              <span class="q-tag ${tagClasses[item.cat]}">${item.tag}</span>
+            </div>
+            <div class="q-text">${item.q}</div>
+            <div class="flip-hint">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+              </svg>
+              Click to reveal answer
+            </div>
+          </div>
+          <div class="flip-card-back">
+            <div class="back-header">✦ Answer</div>
+            <ul class="answer-points">
+              ${item.a.map(pt => `<li>${pt}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      `;
+
+      card.addEventListener('click', () => {
+        card.classList.toggle('flipped');
+        if (card.classList.contains('flipped')) {
+          flippedSet.add(item.id);
+        } else {
+          flippedSet.delete(item.id);
+        }
+        updateProgress();
+      });
+
+      grid.appendChild(card);
+    });
+
+    container.appendChild(grid);
+  });
+}
+
+function updateProgress() {
+  const total = 40;
+  const done = flippedSet.size;
+  document.getElementById('totalFlipped').textContent = done;
+  document.getElementById('pctDone').textContent = Math.round((done / total) * 100) + '%';
+  document.getElementById('progressBar').style.width = (done / total * 100) + '%';
+}
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = btn.dataset.filter;
+    buildCards(activeFilter);
+    updateProgress();
+  });
+});
+
+buildCards('all');
+updateProgress();
+</script>
+</body>
+</html>
